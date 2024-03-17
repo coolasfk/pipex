@@ -6,19 +6,9 @@
 /*   By: eprzybyl <eprzybyl@student.42lausanne.c    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/10 20:14:41 by eprzybyl          #+#    #+#             */
-/*   Updated: 2024/03/17 18:04:35 by eprzybyl         ###   ########.fr       */
+/*   Updated: 2024/03/17 19:26:48 by eprzybyl         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
-#include "headers/pipex.h"
-
-void	errors(int code)
-{
-	if (code == 1)
-		fprintf(stderr, "Usage: %s file1 cmd1 cmd2 file2\n", "too little argc");
-	if (code == 2)
-		fprintf(stderr, "%s\n", "pipe error");
-}
 
 #include "pipex.h"
 
@@ -40,6 +30,7 @@ char	**find_path(t_p *p, char *envp[])
 	p->path = ft_split(path, ':');
 	if (!p->path)
 	{
+		free_memory(p);
 		ft_printf("Error splitting PATH variable.\n");
 		return (NULL);
 	}
@@ -53,37 +44,38 @@ void	initialize_var(t_p *p, char *envp[], char *argv[])
 	p->envp = envp;
 	p->i = 0;
 	p->result = -9;
+	if (pipe(p->pfd) == -1)
+	{
+		perror("pipe");
+		free_memory(p);
+		exit(EXIT_FAILURE);
+	}
+	p->f2 = open(argv[4], O_CREAT | O_WRONLY | O_TRUNC, 0644);
+	if (p->f2 < 0)
+	{
+		perror("Error opening outfile");
+		free_memory(p);
+		exit(EXIT_FAILURE);
+	}
+	p->f1 = open(argv[1], O_RDONLY);
+	if (p->f1 < 0)
+	{
+		perror("Error opening infile");
+		free_memory(p);
+		exit(EXIT_FAILURE);
+	}
+	p->path = NULL;
 }
 
 int	main(int argc, char *argv[], char *envp[])
 {
 	t_p	p;
-	int	status;
 	int	childExitStatus;
 
-	initialize_var(&p, envp, argv);
 	if (argc != 5)
-	{
 		exit(1);
-	}
-	if (pipe(p.pfd) == -1)
-	{
-		perror("pipe");
-		exit(EXIT_FAILURE);
-	}
-	p.f2 = open(argv[4], O_CREAT | O_WRONLY | O_TRUNC, 0644);
-	if (p.f2 < 0)
-	{
-		perror("Error opening outfile");
-		exit(EXIT_FAILURE);
-	}
+	initialize_var(&p, envp, argv);
 	find_path(&p, envp);
-	p.f1 = open(argv[1], O_RDONLY);
-	if (p.f1 < 0)
-	{
-		perror("Error opening infile");
-		exit(EXIT_FAILURE);
-	}
 	p.pid = fork();
 	if (p.pid == 0)
 	{
@@ -92,6 +84,9 @@ int	main(int argc, char *argv[], char *envp[])
 		dup2(p.f1, STDIN_FILENO);
 		dup2(p.pfd[1], STDOUT_FILENO);
 		p.result = process_possible(&p, p.cmd1);
+		free(p.cmd1);
+		free(p.path);
+		free_memory(&p);
 		exit(p.result);
 	}
 	else
@@ -107,55 +102,87 @@ int	main(int argc, char *argv[], char *envp[])
 			p.result = process_possible(&p, p.cmd2);
 		}
 	}
-	waitpid(p.pid, &status, 0);
-	if (WIFEXITED(status))
-	{
-		childExitStatus = WEXITSTATUS(status);
-		if (childExitStatus != 0)
-		{
-			free_memory(&p);
-			exit(childExitStatus);
-		}
-	}
 	close(p.f1);
 	close(p.f2);
 	close(p.pfd[0]);
-	//wait(NULL);
 	free_memory(&p);
+	waitpid(p.pid, &p.status, 0);
+	if (WIFEXITED(p.status))
+	{
+		childExitStatus = WEXITSTATUS(p.status);
+		if (childExitStatus != 0)
+		{
+			exit(childExitStatus);
+		}
+	}
 	return (0);
 }
 
 void	free_memory(t_p *p)
 {
-	free(p->path);
-	free(p->cmd1);
-	free(p->cmd2);
+	int	i;
+
+	i = 0;
+	if (p->path != NULL)
+	{
+		while (p->path[i] != NULL)
+		{
+			free(p->path[i]);
+			i++;
+		}
+		free(p->path);
+	}
+	i = 0;
+	if (p->cmd1 != NULL)
+	{
+		while (p->cmd1[i] != NULL)
+		{
+			free(p->cmd1[i]);
+			i++;
+		}
+		free(p->cmd1);
+	}
+	i = 0;
+	if (p->cmd2 != NULL)
+	{
+		while (p->cmd2[i] != NULL)
+		{
+			free(p->cmd2[i]);
+			i++;
+		}
+		free(p->cmd2);
+	}
+
 }
 
 int	process_possible(t_p *p, char **cmd)
 {
-	char	*path;
 	char	*temp_path;
 
 	p->i = 0;
 	while (p->path[p->i] != NULL)
 	{
 		temp_path = ft_strjoin(p->path[p->i], "/");
-		path = ft_strjoin(temp_path, cmd[0]);
+		p->cmd_path = ft_strjoin(temp_path, cmd[0]);
 		free(temp_path);
 		temp_path = NULL;
-		if (!path)
+		if (!p->cmd_path)
+		{
+			free_memory(p);
 			exit(127);
-		if (access(path, X_OK) == 0)
+		}
+		if (access(p->cmd_path, X_OK) == 0)
 			break ;
+		free(p->cmd_path);
+		p->cmd_path = NULL;
 		p->i++;
 	}
-	if (execve(path, cmd, p->envp) == -1)
+	if (execve(p->cmd_path, cmd, p->envp) == -1)
 	{
+		free_memory(p);
 		perror("execve failed");
 		exit(127);
 	}
-	free(path);
 	exit(127);
 	return (0);
 }

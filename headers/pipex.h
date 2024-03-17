@@ -6,7 +6,7 @@
 /*   By: eprzybyl <eprzybyl@student.42lausanne.c    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/10 14:13:52 by eprzybyl          #+#    #+#             */
-/*   Updated: 2024/03/17 17:20:13 by eprzybyl         ###   ########.fr       */
+/*   Updated: 2024/03/17 18:14:35 by eprzybyl         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,6 +59,7 @@ typedef struct s_pipex
 	int i;
 	int cmd_check;
 	char *cmd_path;
+	int status;
 }	t_p;
 
 int main(int argc, char *argv[], char *envp[]);
