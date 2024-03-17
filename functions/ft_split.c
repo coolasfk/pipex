@@ -6,7 +6,7 @@
 /*   By: eprzybyl <eprzybyl@student.42lausanne.c    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/04 10:13:39 by eprzybyl          #+#    #+#             */
-/*   Updated: 2024/03/12 17:30:29 by eprzybyl         ###   ########.fr       */
+/*   Updated: 2024/03/17 20:38:55 by eprzybyl         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,7 +54,7 @@ char	**populate_split(char *s, char c, char **split, int word_count)
 		if (s[i] != c && (s[i + 1] == c || s[i + 1] == '\0'))
 		{
 			len = i - start + 1;
-			split[word_count] = ft_substr((char*)s, start, len);
+			split[word_count] = ft_substr((char *)s, start, len);
 			if (!split[word_count])
 			{
 				free_split(split, word_count);

@@ -6,12 +6,11 @@
 /*   By: eprzybyl <eprzybyl@student.42lausanne.c    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/11/01 20:39:31 by eprzybyl          #+#    #+#             */
-/*   Updated: 2024/03/12 17:30:29 by eprzybyl         ###   ########.fr       */
+/*   Updated: 2024/03/17 20:39:11 by eprzybyl         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
-
 
 char	*ft_strjoin(char *s1, char *s2)
 {
